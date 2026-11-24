@@ -4,7 +4,9 @@
   "description": "Outbound-only authenticated Windows desktop agent for DIYA AI (zero exposed ports, allowlisted actions only)",
   "main": "agent.js",
   "scripts": {
-    "start": "node agent.js"
+    "start": "node agent.js",
+    "pair": "node agent.js --pair",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "ws": "^8.18.1"
