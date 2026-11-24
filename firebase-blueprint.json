@@ -1,0 +1,211 @@
+{
+  "entities": {
+    "DeviceRecord": {
+      "title": "DeviceRecord",
+      "description": "Registered Android mobile or Windows desktop agent device belonging to a user",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the device owner"
+        },
+        "deviceType": {
+          "type": "string",
+          "enum": ["ANDROID_MOBILE", "WINDOWS_DESKTOP"],
+          "description": "Platform role of the registered device"
+        },
+        "deviceName": {
+          "type": "string",
+          "description": "Human-readable device label"
+        },
+        "connectionStatus": {
+          "type": "string",
+          "enum": ["ONLINE", "OFFLINE", "STANDBY"],
+          "description": "Current connection state of the device"
+        },
+        "pairingStatus": {
+          "type": "string",
+          "enum": ["UNPAIRED", "WAITING_FOR_PC", "PAIRED"],
+          "description": "Device pairing lifecycle status"
+        },
+        "allowedActions": {
+          "type": "array",
+          "description": "Explicitly allowlisted desktop action identifiers (max 10)"
+        },
+        "lastConnectedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Optional server timestamp of last authenticated connection"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when device was registered (FieldValue.serverTimestamp())"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update (FieldValue.serverTimestamp())"
+        }
+      },
+      "required": [
+        "userId",
+        "deviceType",
+        "deviceName",
+        "connectionStatus",
+        "pairingStatus",
+        "allowedActions",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PairingCodeRecord": {
+      "title": "PairingCodeRecord",
+      "description": "Temporary one-time pairing code with TTL expiration for linking a Windows desktop agent",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID"
+        },
+        "code": {
+          "type": "string",
+          "description": "Temporary alphanumeric pairing code"
+        },
+        "mobileDeviceId": {
+          "type": "string",
+          "description": "Unique ID of the mobile device requesting pairing"
+        },
+        "mobileDeviceName": {
+          "type": "string",
+          "description": "Display name of the mobile device"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["ACTIVE", "CONSUMED", "EXPIRED", "REVOKED"],
+          "description": "Lifecycle state of the pairing code"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Expiration timestamp within 15 minutes of creation"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update"
+        }
+      },
+      "required": [
+        "userId",
+        "code",
+        "mobileDeviceId",
+        "mobileDeviceName",
+        "status",
+        "expiresAt",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CommandRequestRecord": {
+      "title": "CommandRequestRecord",
+      "description": "Allowlisted desktop action request with explicit user confirmation enforcement",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID"
+        },
+        "sourceDeviceId": {
+          "type": "string",
+          "description": "Unique ID of originating mobile device"
+        },
+        "targetDeviceId": {
+          "type": "string",
+          "description": "Optional unique ID of paired Windows desktop agent"
+        },
+        "actionType": {
+          "type": "string",
+          "enum": [
+            "OPEN_BROWSER_URL",
+            "SEARCH_SCOPED_DOCUMENTS",
+            "MEDIA_PLAYBACK_CONTROL",
+            "WORKSPACE_STATUS_CHECK",
+            "DRAFT_MESSAGE_PREVIEW",
+            "ARCHIVE_SCOPED_FILE"
+          ],
+          "description": "Strictly allowlisted desktop action"
+        },
+        "summaryText": {
+          "type": "string",
+          "description": "Human-readable description of the requested action"
+        },
+        "targetScope": {
+          "type": "string",
+          "description": "Sanitized URL or scoped alias — never raw shell commands"
+        },
+        "confirmationRequired": {
+          "type": "boolean",
+          "description": "Whether explicit user confirmation is mandatory before queuing"
+        },
+        "confirmed": {
+          "type": "boolean",
+          "description": "Whether the user explicitly confirmed this command"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING_CONFIRMATION",
+            "APPROVED_QUEUED",
+            "CANCELLED",
+            "PC_OFFLINE_NOT_SENT",
+            "EXECUTED",
+            "REJECTED"
+          ],
+          "description": "Command approval and relay lifecycle state"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest update"
+        }
+      },
+      "required": [
+        "userId",
+        "sourceDeviceId",
+        "actionType",
+        "summaryText",
+        "targetScope",
+        "confirmationRequired",
+        "confirmed",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/devices/{deviceId}": {
+      "schema": { "$ref": "#/entities/DeviceRecord" },
+      "description": "User-scoped registered mobile and desktop devices"
+    },
+    "/users/{userId}/pairingCodes/{codeId}": {
+      "schema": { "$ref": "#/entities/PairingCodeRecord" },
+      "description": "User-scoped temporary expiring pairing codes"
+    },
+    "/users/{userId}/commandRequests/{commandId}": {
+      "schema": { "$ref": "#/entities/CommandRequestRecord" },
+      "description": "User-scoped allowlisted command requests with confirmation gate"
+    }
+  }
+}

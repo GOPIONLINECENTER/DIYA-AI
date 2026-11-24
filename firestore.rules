@@ -1,0 +1,191 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny all reads and writes by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidDevice(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.deviceType is string && data.deviceType in ['ANDROID_MOBILE', 'WINDOWS_DESKTOP'] &&
+             data.deviceName is string && data.deviceName.size() >= 1 && data.deviceName.size() <= 80 &&
+             data.connectionStatus is string && data.connectionStatus in ['ONLINE', 'OFFLINE', 'STANDBY'] &&
+             data.pairingStatus is string && data.pairingStatus in ['UNPAIRED', 'WAITING_FOR_PC', 'PAIRED'] &&
+             data.allowedActions is list && data.allowedActions.size() <= 10 &&
+             (data.allowedActions.size() == 0 || data.allowedActions[0] is string) &&
+             (!('lastConnectedAt' in data) || data.lastConnectedAt == null ||
+               (data.lastConnectedAt is timestamp && data.lastConnectedAt <= request.time)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidPairingCode(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.code is string && data.code.size() >= 6 && data.code.size() <= 16 &&
+             data.code.matches('^[A-Z0-9\\-]+$') &&
+             data.mobileDeviceId is string && data.mobileDeviceId.size() >= 4 && data.mobileDeviceId.size() <= 128 &&
+             data.mobileDeviceName is string && data.mobileDeviceName.size() >= 1 && data.mobileDeviceName.size() <= 80 &&
+             data.status is string && data.status in ['ACTIVE', 'CONSUMED', 'EXPIRED', 'REVOKED'] &&
+             data.expiresAt is timestamp && data.expiresAt <= request.time + duration.value(15, 'm') &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isAllowedDesktopAction(action) {
+      return action in [
+        'OPEN_BROWSER_URL',
+        'SEARCH_SCOPED_DOCUMENTS',
+        'MEDIA_PLAYBACK_CONTROL',
+        'WORKSPACE_STATUS_CHECK',
+        'DRAFT_MESSAGE_PREVIEW',
+        'ARCHIVE_SCOPED_FILE'
+      ];
+    }
+
+    function isValidCommandRequest(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.sourceDeviceId is string && data.sourceDeviceId.size() >= 4 && data.sourceDeviceId.size() <= 128 &&
+             (!('targetDeviceId' in data) || (data.targetDeviceId is string && data.targetDeviceId.size() <= 128)) &&
+             data.actionType is string && isAllowedDesktopAction(data.actionType) &&
+             data.summaryText is string && data.summaryText.size() >= 1 && data.summaryText.size() <= 300 &&
+             data.targetScope is string && data.targetScope.size() <= 300 &&
+             data.confirmationRequired is bool &&
+             data.confirmed is bool &&
+             data.status is string && data.status in [
+               'PENDING_CONFIRMATION',
+               'APPROVED_QUEUED',
+               'CANCELLED',
+               'PC_OFFLINE_NOT_SENT',
+               'EXECUTED',
+               'REJECTED'
+             ] &&
+             (!data.confirmationRequired || data.status != 'APPROVED_QUEUED' || data.confirmed == true) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId}/devices/{deviceId} {
+      allow get: if isOwner(userId) && isValidId(deviceId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(deviceId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'deviceType', 'deviceName', 'connectionStatus',
+                         'pairingStatus', 'allowedActions', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'deviceType', 'deviceName', 'connectionStatus',
+                         'pairingStatus', 'allowedActions', 'lastConnectedAt', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidDevice(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(deviceId) &&
+                       isValidDevice(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().deviceType == existing().deviceType &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'deviceName', 'connectionStatus', 'pairingStatus',
+                         'allowedActions', 'lastConnectedAt', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(deviceId);
+    }
+
+    match /users/{userId}/pairingCodes/{codeId} {
+      allow get: if isOwner(userId) && isValidId(codeId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(codeId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'code', 'mobileDeviceId', 'mobileDeviceName',
+                         'status', 'expiresAt', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'code', 'mobileDeviceId', 'mobileDeviceName',
+                         'status', 'expiresAt', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().status == 'ACTIVE' &&
+                       incoming().expiresAt > request.time &&
+                       isValidPairingCode(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(codeId) &&
+                       existing().status == 'ACTIVE' &&
+                       isValidPairingCode(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().code == existing().code &&
+                       incoming().mobileDeviceId == existing().mobileDeviceId &&
+                       incoming().expiresAt == existing().expiresAt &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'status', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(codeId);
+    }
+
+    match /users/{userId}/commandRequests/{commandId} {
+      allow get: if isOwner(userId) && isValidId(commandId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(commandId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'sourceDeviceId', 'actionType', 'summaryText',
+                         'targetScope', 'confirmationRequired', 'confirmed', 'status',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'sourceDeviceId', 'targetDeviceId', 'actionType',
+                         'summaryText', 'targetScope', 'confirmationRequired', 'confirmed',
+                         'status', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidCommandRequest(incoming(), userId) &&
+                       (incoming().status == 'PENDING_CONFIRMATION' ||
+                         (!incoming().confirmationRequired &&
+                           incoming().status in ['APPROVED_QUEUED', 'PC_OFFLINE_NOT_SENT']));
+
+      allow update: if isOwner(userId) &&
+                       isValidId(commandId) &&
+                       !(existing().status in ['CANCELLED', 'EXECUTED', 'REJECTED']) &&
+                       isValidCommandRequest(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().sourceDeviceId == existing().sourceDeviceId &&
+                       incoming().actionType == existing().actionType &&
+                       incoming().targetScope == existing().targetScope &&
+                       incoming().confirmationRequired == existing().confirmationRequired &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'confirmed', 'status', 'targetDeviceId', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(commandId);
+    }
+  }
+}

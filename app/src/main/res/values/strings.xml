@@ -1,0 +1,39 @@
+<resources>
+    <string name="app_name">DIYA AI</string>
+    <string name="brand_title">DIYA AI</string>
+    <string name="brand_subtitle">YOUR PERSONAL INTELLIGENT ASSISTANT</string>
+
+    <!-- Navigation -->
+    <string name="nav_core">Core</string>
+    <string name="nav_chat">Chat</string>
+    <string name="nav_bridge">Bridge</string>
+    <string name="nav_history">History</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Connection Status -->
+    <string name="status_mobile_preview">Mobile UI • Preview</string>
+    <string name="status_pc_disconnected">PC Agent • Not Connected</string>
+    <string name="status_gemini_standby">Gemini Live • Standby</string>
+
+    <!-- Voice States -->
+    <string name="voice_state_idle">STANDBY</string>
+    <string name="voice_state_listening">LISTENING</string>
+    <string name="voice_state_thinking">THINKING</string>
+    <string name="voice_state_speaking">SPEAKING</string>
+    <string name="voice_preview_notice">UI Preview Mode • Live mic &amp; Gemini stream not connected yet</string>
+
+    <!-- Actions & Accessibility -->
+    <string name="cd_diya_core">DIYA AI animated holographic core</string>
+    <string name="cd_mic_button">Toggle voice preview state</string>
+    <string name="cd_send_message">Send preview message</string>
+    <string name="cd_shortcut_icon">Application shortcut icon</string>
+    <string name="cd_settings_icon">Open settings</string>
+    <string name="cd_back">Navigate back</string>
+
+    <!-- Shortcuts -->
+    <string name="shortcut_whatsapp">WhatsApp</string>
+    <string name="shortcut_youtube">YouTube</string>
+    <string name="shortcut_chrome">Chrome</string>
+    <string name="shortcut_files">Files</string>
+    <string name="shortcut_settings">Settings</string>
+</resources>

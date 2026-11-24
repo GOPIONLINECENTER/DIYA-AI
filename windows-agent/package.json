@@ -1,0 +1,15 @@
+{
+  "name": "diya-windows-agent",
+  "version": "1.0.0",
+  "description": "Outbound-only authenticated Windows desktop agent for DIYA AI (zero exposed ports, allowlisted actions only)",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

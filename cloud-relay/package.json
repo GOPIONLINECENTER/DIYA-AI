@@ -1,0 +1,19 @@
+{
+  "name": "diya-ai-cloud-relay",
+  "version": "1.0.0",
+  "description": "DIYA AI secure HTTPS/WSS relay and server-side Gemini gateway for Google Cloud Run",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.2.0",
+    "ws": "^8.18.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

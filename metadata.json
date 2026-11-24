@@ -1,0 +1,6 @@
+{
+  "name": "DIYA AI",
+  "description": "DIYA AI — Personal Intelligent Assistant with a futuristic JARVIS-inspired HUD interface, multilingual support (Bengali, English, Hindi), and modular architecture ready for Gemini Live API and a secure Windows desktop agent.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
